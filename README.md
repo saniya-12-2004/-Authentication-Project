@@ -32,16 +32,19 @@ C#
 
 HTML + CSS
 
-Project Structure
-Code
+Project Structure Code
 Task/
+
  ├── Controllers/
  │    └── RegisterController.cs
+ 
  ├── Models/
  │    └── Register.cs
  │    └── Admin.cs
+ 
  ├── Services/
  │    └── TokenServices.cs
+ 
  ├── Views/
  │    ├── Register/
  │    │    ├── Register.cshtml
