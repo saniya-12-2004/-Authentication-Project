@@ -1,0 +1,108 @@
+﻿using Task.Models;
+using Task.Services;   
+using System.Linq;
+using System.Web.Mvc;
+
+namespace Task.Controllers
+{
+    public class RegisterController : Controller
+    {
+        
+        RegisterContext d = new RegisterContext();
+
+        
+        public ActionResult Register()
+        {
+            return View();
+        }
+
+       
+        [HttpPost]
+        public ActionResult Register(Register r1, FormCollection form)
+        {
+            if (d.Registers.Any(u => u.Email == r1.Email))
+            {
+                ViewBag.Error = "Email already exists!";
+                return View();
+            }
+
+            
+            var selectedInterests = form.GetValues("Interests");
+            if (selectedInterests != null)
+            {
+                r1.Interests = string.Join(",", selectedInterests);
+            }
+
+            r1.Role = "User";
+            d.Registers.Add(r1);
+            d.SaveChanges();
+
+            TempData["msg"] = "Registered Successfully";
+            return RedirectToAction("Login");
+        }
+
+        
+        public ActionResult Login()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public ActionResult Login(FormCollection form)
+        {
+            string email = form["Email"];
+            string password = form["Password"];
+
+            
+            var admin = d.Admins.FirstOrDefault(a => a.Email == email && a.Password == password);
+            if (admin != null)
+            {
+                var adminRegister = new Register { Email = admin.Email, Role = admin.Role }; 
+                var token = TokenServices.GenerateJwtToken(adminRegister);
+
+                Session["JWToken"] = token;
+                Session["UserName"] = admin.Email;
+                Session["Role"] = admin.Role;
+
+                return RedirectToAction("AdminDashboard");
+            }
+
+            
+            var user = d.Registers.FirstOrDefault(u => u.Email == email && u.Password == password);
+            if (user != null)
+            {
+                var token = TokenServices.GenerateJwtToken(user);
+
+                Session["JWToken"] = token;
+                Session["UserName"] = user.Email;
+                Session["Role"] = user.Role ?? "User";
+
+                return RedirectToAction("UserDashboard");
+            }
+
+            ViewBag.Error = "Invalid Email or Password";
+            return View();
+        }
+
+        public ActionResult AdminDashboard()
+        {
+            ViewBag.Token = Session["JWToken"];
+            ViewBag.Role = Session["Role"];
+            ViewBag.Email = Session["UserName"] ?? "Guest"; 
+            return View();
+        }
+
+        public ActionResult UserDashboard()
+        {
+            ViewBag.Token = Session["JWToken"]; 
+            ViewBag.Role = Session["Role"]; 
+            ViewBag.Email = Session["UserName"] ?? "Guest"; 
+            return View(); }
+
+        public ActionResult Logout()
+        {
+            Session.Clear();
+            return RedirectToAction("Login");
+        }
+    }
+}
